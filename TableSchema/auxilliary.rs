@@ -141,7 +141,7 @@ pub enum QueryResults< 'a  , T> {
 
 
     /// returns the result  of the SelectOnce Query
-    SelectOnce(Option<T>) , 
+    SelectOnce(Option<& 'a T>) , 
     /// returns the result  of the SelectAll Query 
     SelectAll(Vec<& 'a T>) , 
 }
@@ -187,7 +187,9 @@ pub enum Queries<'a, T> {
 
     ///  takes all elements in the Table`<T>` Provided and adds them to the table `<T>`
     /// QueryResult returns Void 
-    TakeFrom( &'a mut Table<T>)
+    TakeFrom( &'a mut Table<T>)  , 
+
+    SelectOnce( fn(&T) -> bool  )
 }
 
 
@@ -211,6 +213,7 @@ impl<T : PartialEq> QueryMethods<T> for QueryTable<T> where T : Clone  {
     /// Takes in An enum Queries and outputs  an Enum QueryResult 
     fn query ( &mut self ,  query : Queries<T>) -> QueryResults< '_  , T> {
         match query  {
+            Queries::SelectOnce(wh) => QueryResults::SelectOnce( self.table.select_once(wh)) , 
             Queries::AddRecord(record ) => QueryResults::State( self.table.add_item(record)) ,
             Queries::AddRecordIfSome( record ,wh ) => QueryResults::State(self.table.add_item_if_some(record, wh)),
             Queries::AddRecordIfEvery( record , wh ) =>QueryResults::State(self.table.add_item_if_every(&record , wh)),
