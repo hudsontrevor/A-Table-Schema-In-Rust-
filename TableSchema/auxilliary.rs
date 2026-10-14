@@ -8,7 +8,7 @@ pub struct Table<T> {
 
 
 
-impl<T : Clone> Table<T> where T : PartialEq {
+impl<T : Clone> Table<T> where T : PartialEq  {
 
     /// Creates a new Table 
     /// #Args
@@ -132,6 +132,7 @@ pub struct QueryTable<T> {
 }
 
 
+
 pub enum QueryResults< 'a  , T> { 
     /// returns the state of the succession  of add_item , add_item_if_some , add_item_if_every , set, update_once and delete methods of the  Table struct that can modify the table 
     State(bool) , 
@@ -195,41 +196,55 @@ pub enum Queries<'a, T> {
 
 
 /// Query Methods 
-pub trait QueryMethods<T> { 
-    fn new_query_client (  records :  Table<T> ) -> QueryTable<T> ; 
-    fn query ( &mut self , query : Queries<T>) -> QueryResults< '_ , T>; 
-    fn move_table (self  ) -> Table<T> ; 
-}
 
 
 
-impl<T : PartialEq> QueryMethods<T> for QueryTable<T> where T : Clone  { 
+impl<T : PartialEq>  QueryTable<T> where T : Clone  { 
 
     /// Outputs the table supplied to initialize this obj. taking it out of this context 
-     fn move_table ( self ) -> Table<T> {
+     pub fn move_table ( self ) -> Table<T> {
         self.table
     }
 
     /// Takes in An enum Queries and outputs  an Enum QueryResult 
-    fn query ( &mut self ,  query : Queries<T>) -> QueryResults< '_  , T> {
+    /// Executes the query on the given table 
+     pub fn query_raw<'a> ( query : Queries<'a, T> , table : &'a mut  Table<T>) -> QueryResults< 'a  , T> {
         match query  {
-            Queries::SelectOnce(wh) => QueryResults::SelectOnce( self.table.select_once(wh)) , 
-            Queries::AddRecord(record ) => QueryResults::State( self.table.add_item(record)) ,
-            Queries::AddRecordIfSome( record ,wh ) => QueryResults::State(self.table.add_item_if_some(record, wh)),
-            Queries::AddRecordIfEvery( record , wh ) =>QueryResults::State(self.table.add_item_if_every(&record , wh)),
-            Queries::SelectAll(wh) => { QueryResults::SelectAll(self.table.select_all(|t| wh(t)) )},
-            Queries::Set( record) => QueryResults::State(self.table.set(record)),
-            Queries::Delete(wh) =>QueryResults::State(self.table.delete(wh)),
-            Queries::UpdateOnce(wh) => QueryResults::State(self.table.update_once(wh)),
-            Queries::UpdateAll( wh , call_back ) => { self.table.update_all(wh, call_back) ;QueryResults::Void },
-            Queries::Absorb(items) => { self.table.absorb(items) ; QueryResults::Void },
-            Queries::TakeFrom(table) =>{ self.table.take_from(table) ; QueryResults::Void },
+            Queries::SelectOnce(wh) => QueryResults::SelectOnce( table.select_once(wh)) , 
+            Queries::AddRecord(record ) => QueryResults::State( table.add_item(record)) ,
+            Queries::AddRecordIfSome( record ,wh ) => QueryResults::State(table.add_item_if_some(record, wh)),
+            Queries::AddRecordIfEvery( record , wh ) =>QueryResults::State(table.add_item_if_every(&record , wh)),
+            Queries::SelectAll(wh) => { QueryResults::SelectAll(table.select_all(|t| wh(t)) )},
+            Queries::Set( record) => QueryResults::State(table.set(record)),
+            Queries::Delete(wh) =>QueryResults::State(table.delete(wh)),
+            Queries::UpdateOnce(wh) => QueryResults::State(table.update_once(wh)),
+            Queries::UpdateAll( wh , call_back ) => { table.update_all(wh, call_back) ;QueryResults::Void },
+            Queries::Absorb(items) => { table.absorb(items) ; QueryResults::Void },
+            Queries::TakeFrom(table_) =>{ table.take_from(table_) ; QueryResults::Void },
         } 
         
         
     }
     /// consumes a Table to initialize A QueryTable obj 
-    fn new_query_client (  records : Table<T> ) -> QueryTable<T> {
+    pub fn new_query_client (  records : Table<T> ) -> QueryTable<T> {
         QueryTable { table : records}
     }
+
+    pub fn query<'a>(&'a mut self, query: Queries<'a, T>) -> QueryResults<'a, T> {
+        QueryTable::query_raw(query, &mut self.table)
+    }
+
+    fn swap ( & mut self , new_records : Vec<T> ) {
+        self.table.records = new_records ; 
+    }
+
+    pub fn queries<'a>(&'a mut self, queries: Vec<Queries<'a, T>>) {
+        queries.into_iter().for_each(|query| {
+             Self::query_raw(query, &mut self.table);
+        });
+    }
+
+     
+
+
 }

@@ -1,3 +1,3 @@
 
  mod auxilliary ; 
- pub use auxilliary::{ Queries , QueryResults , QueryTable , Table , QueryMethods   } ; 
+ pub use self::auxilliary::{ Queries , QueryResults , QueryTable , Table    } ; 
